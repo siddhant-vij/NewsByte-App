@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:newsbyte/utils/constants.dart';
 
@@ -10,6 +11,25 @@ class FetchNewsArticlesService {
   FetchNewsArticlesService(this.newsApiKey);
 
   Future<List<String>> fetchDataSourcesFromTopHeadlines() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Check for cached data and its timestamp
+    final cachedData = prefs.getString('cachedSources');
+    final lastFetchTime = prefs.getInt('lastFetchTime') ?? 0;
+    final currentTime = DateTime.now().millisecondsSinceEpoch;
+    const oneDayMillis = 24 * 60 * 60 * 1000;
+
+    // Return cached data if it's less than a day old
+    if (cachedData != null && currentTime - lastFetchTime < oneDayMillis) {
+      return List<String>.from(json.decode(cachedData));
+    }
+
+    // Fetch new data if cache is outdated or not present
+    return await _fetchAndCacheDataSources(prefs);
+  }
+
+  Future<List<String>> _fetchAndCacheDataSources(
+      SharedPreferences prefs) async {
     final headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $newsApiKey',
@@ -22,26 +42,33 @@ class FetchNewsArticlesService {
 
     if (response.statusCode == 200) {
       Map<String, dynamic> data = json.decode(response.body);
-      return (data['sources'] as List<dynamic>)
+      List<String> sources = (data['sources'] as List)
           .map((source) => source['id'].toString())
           .toList();
+      // Cache the fetched data along with the current timestamp
+      await prefs.setString('cachedSources', json.encode(sources));
+      await prefs.setInt(
+          'lastFetchTime', DateTime.now().millisecondsSinceEpoch);
+      return sources;
     } else {
       throw Exception('Failed to load data sources');
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchNewsArticles() async {
+  Future<List<Map<String, dynamic>>> fetchNewsArticles(
+      {int page = 1, int pageSize = 20}) async {
     final headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $newsApiKey',
     };
     List<String> sources = await fetchDataSourcesFromTopHeadlines();
     final String url =
-        '$everythingEndpoint?language=en&sortBy=popularity&sources=${sources.join(',')}';
+        '$everythingEndpoint?language=en&sortBy=popularity&sources=${sources.join(',')}&pageSize=$pageSize&page=$page';
     final response = await http.get(
       Uri.parse(url),
       headers: headers,
     );
+
     if (response.statusCode == 200) {
       Map<String, dynamic> data = json.decode(response.body);
       return (data['articles'] as List<dynamic>).cast<Map<String, dynamic>>();
