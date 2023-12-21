@@ -2,6 +2,7 @@ import 'package:newsbyte/models/news_article.dart';
 import 'package:newsbyte/services/content_summarization.dart';
 import 'package:newsbyte/services/fetch_news_articles.dart';
 import 'package:newsbyte/services/image_optimization.dart';
+import 'package:newsbyte/utils/constants.dart';
 
 class AggregationService {
   final FetchNewsArticlesService fetchNewsArticlesService;
@@ -27,9 +28,9 @@ class AggregationService {
         articleData['description'] + " " + articleData['content'];
 
     String summarizedTitle =
-        await contentSummarizationService.summarizeContent(title, 8);
+        await contentSummarizationService.summarizeContent(title, titleLength);
     String summarizedDescription = await contentSummarizationService
-        .summarizeContent(combinedDescriptionAndContent, 80);
+        .summarizeContent(combinedDescriptionAndContent, descriptionLength);
 
     var optimizedImagePath =
         await imageOptimizationService.optimizeImage(articleData['urlToImage']);

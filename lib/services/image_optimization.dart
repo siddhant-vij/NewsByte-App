@@ -1,9 +1,12 @@
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:uuid/uuid.dart';
+
+import 'package:newsbyte/utils/constants.dart';
 
 class ImageOptimizationService {
   Future<File> optimizeImage(String imageUrl) async {
@@ -17,9 +20,9 @@ class ImageOptimizationService {
 
         var compressedImage = await FlutterImageCompress.compressWithList(
           imageData,
-          quality: 80,
-          minWidth: 500,
-          minHeight: 500,
+          quality: compressedImageQuality,
+          minWidth: compressedImageMinWidth,
+          minHeight: compressedImageMinHeight,
           format: CompressFormat.jpeg,
         );
 
