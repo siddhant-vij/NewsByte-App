@@ -55,25 +55,42 @@ class FetchNewsArticlesService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchNewsArticles(
-      {int page = 1, int pageSize = 20}) async {
+  Stream<Map<String, dynamic>> fetchNewsArticles(
+      {int page = 1, int pageSize = 20}) async* {
     final headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $newsApiKey',
     };
-    List<String> sources = await fetchDataSourcesFromTopHeadlines();
-    final String url =
-        '$everythingEndpoint?language=en&sortBy=popularity&sources=${sources.join(',')}&pageSize=$pageSize&page=$page';
-    final response = await http.get(
-      Uri.parse(url),
-      headers: headers,
-    );
 
-    if (response.statusCode == 200) {
-      Map<String, dynamic> data = json.decode(response.body);
-      return (data['articles'] as List<dynamic>).cast<Map<String, dynamic>>();
-    } else {
-      throw Exception('Failed to load news articles');
+    List<String> sources = await fetchDataSourcesFromTopHeadlines();
+    String url;
+
+    while (true) {
+      url =
+          '$everythingEndpoint?language=en&sortBy=popularity&sources=${sources.join(',')}&pageSize=$pageSize&page=$page';
+      final response = await http.get(
+        Uri.parse(url),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        Map<String, dynamic> data = json.decode(response.body);
+        List<Map<String, dynamic>> articles =
+            (data['articles'] as List<dynamic>).cast<Map<String, dynamic>>();
+
+        for (var article in articles) {
+          yield article;
+        }
+
+        if (articles.length < pageSize) {
+          break;
+        }
+
+        page++;
+      } else {
+        throw Exception(
+            'Failed to load news articles bacause of ${response.statusCode}');
+      }
     }
   }
 }

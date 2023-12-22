@@ -1,53 +1,32 @@
-// ignore_for_file: unnecessary_getters_setters
-
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
+@immutable
 class NewsArticle {
-  String _sourceName;
-  String _url;
-  String _title;
-  String _description;
-  DateTime _publishedAt;
-  File _imageFilePath;
+  final String sourceName;
+  final String url;
+  final String title;
+  final String description;
+  final DateTime publishedAt;
+  final File imageFilePath;
 
-  NewsArticle({
-    required String sourceName,
-    required String url,
-    required String title,
-    required String description,
-    required DateTime publishedAt,
-    required File imageFilePath,
-  })  : _sourceName = sourceName,
-        _url = url,
-        _title = title,
-        _description = description,
-        _publishedAt = publishedAt,
-        _imageFilePath = imageFilePath;
+  const NewsArticle({
+    required this.sourceName,
+    required this.url,
+    required this.title,
+    required this.description,
+    required this.publishedAt,
+    required this.imageFilePath,
+  });
 
-  // Getters
-  String get sourceName => _sourceName;
-  String get url => _url;
-  String get title => _title;
-  String get description => _description;
-  DateTime get publishedAt => _publishedAt;
-  File get imageFilePath => _imageFilePath;
-
-  // Setters
-  set sourceName(String value) => _sourceName = value;
-  set url(String value) => _url = value;
-  set title(String value) => _title = value;
-  set description(String value) => _description = value;
-  set publishedAt(DateTime value) => _publishedAt = value;
-  set imageFilePath(File value) => _imageFilePath = value;
-
-  // JSON serialization
   factory NewsArticle.fromJson(Map<String, dynamic> json) => NewsArticle(
         sourceName: json['sourceName'],
         url: json['url'],
         title: json['title'],
         description: json['description'],
         publishedAt: DateTime.parse(json['publishedAt']),
-        imageFilePath: json['imageFilePath'],
+        imageFilePath: File(json['imageFilePath']),
       );
 
   Map<String, dynamic> toJson() => {
@@ -56,6 +35,18 @@ class NewsArticle {
         'title': title,
         'description': description,
         'publishedAt': publishedAt.toIso8601String(),
-        'imageFilePath': imageFilePath,
+        'imageFilePath': imageFilePath.path,
       };
+
+  @override
+  String toString() {
+    return 'NewsArticle{\n'
+        'sourceName: $sourceName,\n'
+        'url: $url,\n'
+        'title: $title,\n'
+        'description: $description,\n'
+        'publishedAt: ${publishedAt.toIso8601String()},\n'
+        'imageFilePath: ${imageFilePath.path},\n'
+        '}';
+  }
 }
