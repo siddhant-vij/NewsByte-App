@@ -10,5 +10,9 @@ const titleLength = 8;
 const descriptionLength = 80;
 
 const compressedImageQuality = 80;
-const compressedImageMinWidth = 500;
-const compressedImageMinHeight = 500;
+const compressedImageMinWidth = 1080;
+const compressedImageMinHeight = 720;
+
+const maxSizeOfDeque = 20;
+const articlesFetchedAtATime = 5;
+const articlesToBeRemoved = 5;

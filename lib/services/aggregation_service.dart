@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'dart:io';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -29,38 +29,26 @@ class AggregationService {
 
   Stream<NewsArticle> aggregateArticlesStream(int page, int pageSize) async* {
     var processingFutures = <Future<NewsArticle?>>[];
-    List<NewsArticle> fetchedArticles = [];
 
     await for (var articleData in fetchNewsArticlesService.fetchNewsArticles(
-      page: page,
-      pageSize: pageSize,
-    )) {
+        page: page, pageSize: pageSize)) {
       processingFutures.add(processArticle(articleData));
+
       if (processingFutures.length == articlesFetchedAtATime) {
         var articles = await Future.wait(processingFutures);
-        for (var article in articles) {
-          if (article != null) {
-            fetchedArticles.add(article);
-            yield article;
-          }
-        }
+        _updateRecentArticlesList(articles);
+        yield* Stream.fromIterable(
+            articles.where((article) => article != null).cast<NewsArticle>());
         processingFutures.clear();
       }
     }
 
-    // Process any remaining articles
     if (processingFutures.isNotEmpty) {
       var articles = await Future.wait(processingFutures);
-      for (var article in articles) {
-        if (article != null) {
-          fetchedArticles.add(article);
-          yield article;
-        }
-      }
+      _updateRecentArticlesList(articles);
+      yield* Stream.fromIterable(
+          articles.where((article) => article != null).cast<NewsArticle>());
     }
-
-    // Cache the articles after processing
-    await _cacheArticles(fetchedArticles);
   }
 
   Future<NewsArticle?> processArticle(Map<String, dynamic> articleData) async {
@@ -85,22 +73,27 @@ class AggregationService {
         imageFilePath: optimizedImagePath,
       );
     } catch (e) {
-      return null;
+      // Log error
+      return null; // Consider handling this more gracefully
     }
   }
 
-  Future<void> _cacheArticles(List<NewsArticle> articles) async {
-    _recentArticleUrls.clear();
+  void _updateRecentArticlesList(List<NewsArticle?> articles) {
     for (var article in articles) {
-      String key = article.url;
-      _recentArticleUrls.add(key);
-
-      String jsonData = json.encode(article.toJson());
-      await DefaultCacheManager().putFile(
-        key,
-        Uint8List.fromList(jsonData.codeUnits),
-        fileExtension: 'json',
-      );
+      if (article != null) {
+        _recentArticleUrls.add(article.url);
+        _cacheArticle(article);
+      }
     }
+  }
+
+  Future<void> _cacheArticle(NewsArticle article) async {
+    String key = article.url;
+    String jsonData = json.encode(article.toJson());
+    await DefaultCacheManager().putFile(
+      key,
+      Uint8List.fromList(jsonData.codeUnits),
+      fileExtension: 'json',
+    );
   }
 }

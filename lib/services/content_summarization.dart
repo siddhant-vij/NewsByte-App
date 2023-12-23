@@ -71,7 +71,7 @@ class ContentSummarizationService {
         },
       ],
       'temperature': 0.7,
-      'max_tokens': 100,
+      'max_tokens': 200,
       'top_p': 1,
     };
 

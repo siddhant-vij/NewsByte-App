@@ -31,12 +31,24 @@ class _NewsFeedViewState extends State<NewsFeedView> {
   @override
   void initState() {
     super.initState();
-    ApiConfig.loadConfig().then((_) {
-      _loadArticlesFromCache();
-    });
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    await ApiConfig.loadConfig();
+    await _loadArticlesFromCache();
   }
 
   Future<void> _loadArticlesFromCache() async {
+    var cachedArticles = await _getCachedArticles();
+    if (cachedArticles.isNotEmpty) {
+      _addArticlesToFeed(cachedArticles);
+    } else {
+      _fetchArticles();
+    }
+  }
+
+  Future<List<NewsArticle>> _getCachedArticles() async {
     final aggregationService = AggregationService(
       FetchNewsArticlesService(ApiConfig.newsApiKey),
       ContentSummarizationService(ApiConfig.summaryApiKey),
@@ -45,34 +57,19 @@ class _NewsFeedViewState extends State<NewsFeedView> {
 
     var cachedUrls = aggregationService.getRecentArticleUrls();
     List<NewsArticle> cachedArticles = [];
-
     for (var url in cachedUrls) {
       var fileInfo = await CustomCacheManager.instance.getFileFromCache(url);
       if (fileInfo != null) {
-        try {
-          String content = await fileInfo.file.readAsString();
-          NewsArticle article = NewsArticle.fromJson(json.decode(content));
-          cachedArticles.add(article);
-        } catch (e) {
-          // Error handling using Logger
-        }
+        String content = await fileInfo.file.readAsString();
+        cachedArticles.add(NewsArticle.fromJson(json.decode(content)));
       }
     }
-
-    setState(() {
-      _articles.addAll(cachedArticles);
-    });
-
-    if (cachedArticles.length < articlesFetchedAtATime) {
-      _fetchArticles();
-    }
+    return cachedArticles;
   }
 
   void _fetchArticles() {
     if (_isLoading) return;
-    setState(() {
-      _isLoading = true;
-    });
+    _setLoadingState(true);
 
     final aggregationService = AggregationService(
       FetchNewsArticlesService(ApiConfig.newsApiKey),
@@ -85,60 +82,94 @@ class _NewsFeedViewState extends State<NewsFeedView> {
         .listen((article) {
       if (mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          setState(() {
-            if (_articles.length >= _maxArticlesCount) {
-              _cacheManager.removeFile(_articles[0].imageFilePath.path);
-              _articles.removeAt(0);
-            }
-            _articles.add(article);
-            _isInitialLoad = false;
-          });
+          _handleNewArticle(article);
         });
       }
     }, onDone: () {
       if (mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          setState(() {
-            _isLoading = false;
-            if (_articles.length < articlesFetchedAtATime) {
-              _currentPage++;
-              _fetchArticles();
-            }
-          });
+          _handleStreamDone();
         });
       }
     });
   }
 
-  Future<void> _refreshArticles() async {
+  void _handleNewArticle(NewsArticle article) {
     setState(() {
-      _articles.clear();
-      _currentPage = 1;
-      _isInitialLoad = true;
+      if (_articles.length >= _maxArticlesCount) {
+        _removeOldestArticles();
+      }
+      _articles.add(article);
+      _isInitialLoad = false;
     });
+  }
+
+  void _handleStreamDone() {
+    _setLoadingState(false);
+    if (_articles.length < articlesFetchedAtATime) {
+      _currentPage++;
+      _fetchArticles();
+    }
+  }
+
+  void _removeOldestArticles() {
+    for (int i = 0; i < articlesToBeRemoved; i++) {
+      _cacheManager.removeFile(_articles[i].imageFilePath.path);
+    }
+    _articles.removeRange(0, articlesToBeRemoved);
+  }
+
+  void _addArticlesToFeed(List<NewsArticle> articles) {
+    setState(() {
+      _articles.addAll(articles);
+    });
+  }
+
+  void _setLoadingState(bool loading) {
+    setState(() {
+      _isLoading = loading;
+    });
+  }
+
+  Future<void> _refreshArticles() async {
+    _setLoadingState(true);
+    _articles.clear();
+    _currentPage = 1;
+    _isInitialLoad = true;
     _fetchArticles();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _isInitialLoad
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
-          : RefreshIndicator(
-              onRefresh: _refreshArticles,
-              child: ListView.builder(
-                itemCount: _articles.length,
-                itemBuilder: (context, index) {
-                  if (index >= _articles.length - articlesFetchedAtATime &&
-                      !_isLoading) {
-                    _fetchArticles();
-                  }
-                  return NewsCard(article: _articles[index]);
-                },
-              ),
-            ),
+      body: _buildBody(),
     );
+  }
+
+  Widget _buildBody() {
+    return _isInitialLoad
+        ? const Center(child: CircularProgressIndicator())
+        : RefreshIndicator(
+            onRefresh: _refreshArticles,
+            child: _buildListView(),
+          );
+  }
+
+  ListView _buildListView() {
+    return ListView.builder(
+      itemCount: _articles.length,
+      itemBuilder: (context, index) {
+        if (_shouldFetchMoreArticles(index)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _fetchArticles();
+          });
+        }
+        return NewsCard(article: _articles[index]);
+      },
+    );
+  }
+
+  bool _shouldFetchMoreArticles(int index) {
+    return index >= _articles.length - articlesFetchedAtATime && !_isLoading;
   }
 }
