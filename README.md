@@ -15,7 +15,6 @@ A modern, intuitive news aggregator app developed in Flutter, catering to both A
 - **News Summarization:** Brief summaries of news articles using an integrated summary API.
 - **Image Optimization:** Consistent and efficient image display with an image service.
 - **Responsive Design:** Adaptability across various device sizes - mobiles.
-- **Platform-Specific UI:** Tailored widget styling for Android and iOS.
 
 ## Installation
 - Clone the repository: `git clone https://github.com/siddhant-vij/NewsByte-App.git`
@@ -30,8 +29,7 @@ A modern, intuitive news aggregator app developed in Flutter, catering to both A
 - **State Management**: Manage state changes efficiently using Flutter’s native capabilities.
 - **Efficient Data Structures**: Use a double-ended queue (deque) approach for storing news articles, facilitating efficient addition and removal from both ends of the list. Limit memory usage by managing the number of articles in the deque.
 - **UI - Swipe Action**: Implement swipe up for next articles and swipe down for previous articles, with a refresh feature at the beginning of the list.
-- **Asynchronous Programming**: Use Futures for API calls, & implement Streams for real-time news feed updates.
-- **Concurrency Features**: Employ Isolates for CPU-intensive tasks like image processing to ensure UI smoothness.
+- **Asynchronous Programming & Concurrency**: Use Futures for API calls, & implement Streams for real-time news feed updates. Use Isolates for CPU-intensive tasks to ensure UI smoothness.
 
 ## Contributions
 Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
