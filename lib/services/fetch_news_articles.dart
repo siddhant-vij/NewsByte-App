@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -56,22 +57,27 @@ class FetchNewsArticlesService {
   }
 
   Stream<Map<String, dynamic>> fetchNewsArticles(
-      {int page = 1, int pageSize = 20}) async* {
+      {int page = 1, int pageSize = 20, int maxArticlesPerSource = 2}) async* {
     final headers = {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $newsApiKey',
     };
 
     List<String> sources = await fetchDataSourcesFromTopHeadlines();
-    String url;
+    Map<String, int> articleCountPerSource = {};
+    Random random = Random();
 
     while (true) {
-      url =
-          '$everythingEndpoint?language=en&sortBy=popularity&sources=${sources.join(',')}&pageSize=$pageSize&page=$page';
-      final response = await http.get(
-        Uri.parse(url),
-        headers: headers,
-      );
+      String selectedSource = sources[random.nextInt(sources.length)];
+
+      int count = articleCountPerSource[selectedSource] ?? 0;
+      if (count >= maxArticlesPerSource) {
+        continue;
+      }
+
+      String url =
+          '$everythingEndpoint?language=en&sources=$selectedSource&pageSize=$pageSize&page=$page';
+      final response = await http.get(Uri.parse(url), headers: headers);
 
       if (response.statusCode == 200) {
         Map<String, dynamic> data = json.decode(response.body);
@@ -79,17 +85,18 @@ class FetchNewsArticlesService {
             (data['articles'] as List<dynamic>).cast<Map<String, dynamic>>();
 
         for (var article in articles) {
-          yield article;
+          if (article['urlToImage'] != null &&
+              article['urlToImage'].toString().isNotEmpty) {
+            yield article;
+            articleCountPerSource[selectedSource] = count + 1;
+            if (articleCountPerSource[selectedSource] == maxArticlesPerSource) {
+              break;
+            }
+          }
         }
-
-        if (articles.length < pageSize) {
-          break;
-        }
-
-        page++;
       } else {
         throw Exception(
-            'Failed to load news articles bacause of ${response.statusCode}');
+            'Failed to load news articles because of ${response.statusCode}');
       }
     }
   }
