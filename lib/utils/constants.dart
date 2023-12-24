@@ -16,3 +16,6 @@ const compressedImageMinHeight = 720;
 const maxSizeOfDeque = 20;
 const articlesFetchedAtATime = 5;
 const articlesToBeRemoved = 5;
+
+
+// UI Constants can be added here!
