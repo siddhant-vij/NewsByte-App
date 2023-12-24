@@ -9,6 +9,7 @@ class NewsArticle {
   final String title;
   final String description;
   final DateTime publishedAt;
+  final String author;
   final File imageFilePath;
 
   const NewsArticle({
@@ -17,6 +18,7 @@ class NewsArticle {
     required this.title,
     required this.description,
     required this.publishedAt,
+    required this.author,
     required this.imageFilePath,
   });
 
@@ -26,6 +28,7 @@ class NewsArticle {
         title: json['title'],
         description: json['description'],
         publishedAt: DateTime.parse(json['publishedAt']),
+        author: json['author'],
         imageFilePath: File(json['imageFilePath']),
       );
 
@@ -35,6 +38,7 @@ class NewsArticle {
         'title': title,
         'description': description,
         'publishedAt': publishedAt.toIso8601String(),
+        'author': author,
         'imageFilePath': imageFilePath.path,
       };
 
@@ -46,6 +50,7 @@ class NewsArticle {
         'title: $title,\n'
         'description: $description,\n'
         'publishedAt: ${publishedAt.toIso8601String()},\n'
+        'author: $author,\n'
         'imageFilePath: ${imageFilePath.path},\n'
         '}';
   }

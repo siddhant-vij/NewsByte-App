@@ -75,18 +75,21 @@ class ContentSummarizationService {
       'top_p': 1,
     };
 
-    final response = await http.post(
-      Uri.parse(apiUrl),
-      headers: headers,
-      body: jsonEncode(body),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: headers,
+        body: jsonEncode(body),
+      );
 
-    if (response.statusCode == 200) {
-      Map<String, dynamic> data = json.decode(response.body);
-      return data['choices'][0]['message']['content'] as String;
-    } else {
-      throw Exception(
-          'Failed to summarize content. Status code: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        Map<String, dynamic> data = json.decode(response.body);
+        return data['choices'][0]['message']['content'] as String;
+      } else {
+        throw Exception('Failed to summarize content: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to summarize content: $e');
     }
   }
 }

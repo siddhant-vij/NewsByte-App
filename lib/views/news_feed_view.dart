@@ -27,6 +27,7 @@ class _NewsFeedViewState extends State<NewsFeedView> {
   int _currentPage = 1;
   bool _isInitialLoad = true;
   bool _isLoading = false;
+  final PageController _controller = PageController();
 
   @override
   void initState() {
@@ -151,12 +152,14 @@ class _NewsFeedViewState extends State<NewsFeedView> {
         ? const Center(child: CircularProgressIndicator())
         : RefreshIndicator(
             onRefresh: _refreshArticles,
-            child: _buildListView(),
+            child: _buildPageView(),
           );
   }
 
-  ListView _buildListView() {
-    return ListView.builder(
+  PageView _buildPageView() {
+    return PageView.builder(
+      controller: _controller,
+      scrollDirection: Axis.vertical,
       itemCount: _articles.length,
       itemBuilder: (context, index) {
         if (_shouldFetchMoreArticles(index)) {

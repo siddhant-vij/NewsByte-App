@@ -70,6 +70,7 @@ class AggregationService {
         title: summarizedTitle,
         description: summarizedDescription,
         publishedAt: DateTime.parse(articleData['publishedAt']),
+        author: articleData['author'] as String,
         imageFilePath: optimizedImagePath,
       );
     } catch (e) {
